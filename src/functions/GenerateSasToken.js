@@ -18,6 +18,7 @@ app.http('GenerateSasToken', {
             const permissions = new BlobSASPermissions();
             permissions.write = true;
             permissions.create = true;
+            permissions.delete = true;
 
             const startDate = new Date();
             const expiryDate = new Date(startDate);
@@ -28,7 +29,7 @@ app.http('GenerateSasToken', {
                 permissions,
                 startsOn: startDate,
                 expiresOn: expiryDate,
-                version: '2024-08-04',
+                version: new Date().toISOString().split('T')[0],
             }, blobServiceClient.credential).toString();
 
             return {
