@@ -3,7 +3,6 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const AdmZip = require('adm-zip');
-const { DefaultAzureCredential } = require('@azure/identity');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -14,16 +13,14 @@ app.http('CreatePythonWebJob', {
     handler: async (request, context) => {
         const scriptContent = `
 import sys
-print("Hello from dynamically generated Python script!")
+print("Hello from dynamically generated Python script update!")
         `;
 
         const scriptPath = path.join(__dirname, 'script.py');
         const zipPath = path.join(__dirname, 'script.zip');
         const settingsPath = path.join(__dirname, 'settings.job');
 
-        const cronSchedule = {
-            schedule: "0 */5 * * * *"
-        };
+        const cronSchedule = { schedule: "0 */5 * * * *" };
 
         try {
             fs.writeFileSync(scriptPath, scriptContent);
@@ -33,16 +30,15 @@ print("Hello from dynamically generated Python script!")
             zip.addLocalFile(scriptPath);
             zip.addLocalFile(settingsPath);
             zip.writeZip(zipPath);
-            // console.log(`Zip created at: ${zipPath}`);
 
-            const credential = new DefaultAzureCredential();
-            const token = (await credential.getToken('https://management.azure.com/.default')).token;
-            
             const webJobUrl = `https://${process.env.AZURE_WEBAPP_NAME}.scm.azurewebsites.net/api/triggeredwebjobs/${process.env.WEBJOB_NAME}`;
+            const username = process.env.AZURE_DEPLOYMENT_USERNAME;
+            const password = process.env.AZURE_DEPLOYMENT_PASSWORD;
+            const auth = Buffer.from(`${username}:${password}`).toString('base64');
 
             const response = await axios.put(webJobUrl, fs.createReadStream(zipPath), {
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `Basic ${auth}`,
                     'Content-Type': 'application/zip',
                     'Content-Disposition': `attachment; filename="${process.env.WEBJOB_NAME}.zip"`
                 }
